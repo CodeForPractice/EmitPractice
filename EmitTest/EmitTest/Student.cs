@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,34 +17,85 @@ namespace EmitTest
     /// </summary>
     public sealed class Student
     {
-        public void Say()
+        public static void SetGetAge1IL()
         {
-            for (int i = 0; i < 10; i++)
+            Console.WriteLine("---1---");
+            var aa = AssemblyUtil.GetTypeBuilder("Student", (m, assemblyBuilder) =>
             {
-                Console.WriteLine(i.ToString());
-            }
+                MethodBuilder methodBuilder = m.DefineMethod("GetAge1", System.Reflection.MethodAttributes.Public, typeof(int), Type.EmptyTypes);
+                ILGenerator il = methodBuilder.GetILGenerator();
+                LocalBuilder age = il.DeclareLocal(typeof(int));
+                il.Emit(OpCodes.Ldc_I4_S, 10);
+                il.Emit(OpCodes.Stloc_0);
+                il.Emit(OpCodes.Ldloc_0);
+
+                il.Emit(OpCodes.Ret);
+
+                Type type = m.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                Console.WriteLine(type.GetMethod("GetAge1").Invoke(obj, null));
+            });
+
         }
 
-        public void Say(string msg)
+        public static void SetGetAge2IL()
         {
-            Console.WriteLine(msg);
+            Console.WriteLine("---2---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("GetAge2", System.Reflection.MethodAttributes.Public, typeof(int), new Type[] { typeof(int) });
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ret);
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                Console.WriteLine(type.GetMethod("GetAge2").Invoke(obj, new object[] { 99 }));
+            });
         }
 
-        public int Calculate(int a, int b)
+        public static void SetGetAge3IL()
         {
-            if (a < 10)
+            Console.WriteLine("---3---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
             {
-                return b;
-            }
-            if (b < 10)
-            {
-                return a;
-            }
-            if (a == b || a + b < 10)
-            {
-                return 10;
-            }
-            return a - b;
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("GetAge3", System.Reflection.MethodAttributes.Public, typeof(int), new Type[] { typeof(int) });
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+                Label returnLable1 = il.DefineLabel();
+                Label lbReturnResutl = il.DefineLabel();
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldc_I4_1);
+                il.Emit(OpCodes.Clt);
+                il.Emit(OpCodes.Brtrue_S, returnLable1);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldc_I4_S,100);
+                il.Emit(OpCodes.Cgt);
+                il.Emit(OpCodes.Brtrue_S, returnLable1);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Br, lbReturnResutl);
+
+                il.MarkLabel(returnLable1);
+                il.Emit(OpCodes.Ldc_I4_1);
+
+                il.MarkLabel(lbReturnResutl);
+               
+                il.Emit(OpCodes.Ret);
+
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 99 }));
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 101 }));
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { -1 }));
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 50 }));
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 100 }));
+                Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 33 }));
+            });
         }
     }
 }

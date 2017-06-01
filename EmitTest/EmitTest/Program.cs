@@ -14,9 +14,14 @@ namespace EmitTest
         private delegate void HelloWorldDelegate();
         static void Main(string[] args)
         {
-            Method1();
-            Method2();
-            Method3();
+            //Method1();
+            //Method2();
+            //Method3();
+
+            Student.SetGetAge1IL();
+            Student.SetGetAge2IL();
+            Student.SetGetAge3IL();
+
             Console.Read();
         }
 
