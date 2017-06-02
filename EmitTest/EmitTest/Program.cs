@@ -20,13 +20,16 @@ namespace EmitTest
             //Method2();
             //Method3();
 
-            Student.SetGetAge1IL();
-            Student.SetGetAge2IL();
-            Student.SetGetAge3IL();
-            Student.SetGetAgeIL();
-            Student.SetSayMsgIL();
-            Student.SetCalculateIL();
-            Student.SetSayIL();
+            //Student.SetGetAge1IL();
+            //Student.SetGetAge2IL();
+            //Student.SetGetAge3IL();
+            //Student.SetGetAgeIL();
+            //Student.SetSayMsgIL();
+            //Student.SetCalculateIL();
+            //Student.SetSayIL();
+
+            TableTest.Test1();
+
             Console.Read();
         }
 

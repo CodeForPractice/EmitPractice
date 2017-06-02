@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -139,6 +140,22 @@ namespace Infrastructure
             return list;
         }
 
+        public delegate T LoadDataRecord<T>(DataRow dr);
+        private static ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod> dynamicMethodCache = new ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod>();
+
+        public static T ToT<T>(DataRow dr)
+        {
+            var type = typeof(T);
+            if (type == null) return default(T);
+            var typeHandle = type.TypeHandle;
+            var method = dynamicMethodCache.GetValue(typeHandle, () =>
+            {
+                return GetDynamicMethod<T>(dr);
+            });
+            var deledge = (LoadDataRecord<T>)method.CreateDelegate(typeof(LoadDataRecord<T>));
+            return deledge(dr);
+        }
+
         public static DynamicMethod GetDynamicMethod<T>(this DataRow @this)
         {
             var instanceType = typeof(T);
@@ -153,7 +170,7 @@ namespace Infrastructure
 
             List<PropertyInfo> properties = PropertyUtil.GetTypeProperties(instanceType);
 
-            foreach (var item in properties)
+            foreach (var item in properties.Where(m => TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum))
             {
                 Label endIfLabel = il.DefineLabel();
                 //判断DataRow是否包含该属性
@@ -167,19 +184,30 @@ namespace Infrastructure
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, item.Name);
                 il.Emit(OpCodes.Call, getColumnValueMethod);
-
                 //设置值
-                if (item.PropertyType.IsValueType || item.PropertyType == typeof(string))
+                if (item.PropertyType.IsValueType)
                 {
-
+                    il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
                 }
                 else
                 {
                     il.Emit(OpCodes.Castclass, item.PropertyType);
                 }
+                //il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
                 il.Emit(OpCodes.Callvirt, item.GetSetMethod());
 
                 il.MarkLabel(endIfLabel);
+            }
+
+            foreach (var item in properties.Where(m => !(TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum)))
+            {
+                if (item.PropertyType.IsArray || item.PropertyType.IsGenericType)
+                {
+
+                }else
+                {
+
+                }
             }
             il.Emit(OpCodes.Ldloc, instance);
             il.Emit(OpCodes.Ret);
@@ -190,7 +218,7 @@ namespace Infrastructure
         {
             if (row == null) return false;
             if (string.IsNullOrWhiteSpace(columnName)) return false;
-            return row.Table.Columns.IndexOf(columnName) > 0;
+            return row.Table.Columns.IndexOf(columnName) >= 0;
         }
 
         public static object GetColumnValue(DataRow row, string columnName)
@@ -198,7 +226,7 @@ namespace Infrastructure
             if (IsContainColumn(row, columnName))
             {
                 var value = row[columnName];
-                if (value == DBNull.Value)
+                if (value == null || value == DBNull.Value)
                 {
                     value = null;
                 }

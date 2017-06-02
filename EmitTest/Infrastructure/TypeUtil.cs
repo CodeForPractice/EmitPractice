@@ -30,5 +30,43 @@ namespace Infrastructure
                 return type.GetFields(BindingFlags.Public | BindingFlags.Instance);
             });
         }
+
+        public static readonly Type[] _BaseTypes = new Type[] {typeof(byte) ,
+                          typeof(sbyte),
+                          typeof(short),
+                          typeof(ushort),
+                          typeof(int),
+                          typeof(uint),
+                          typeof(long),
+                          typeof(ulong),
+                          typeof(float),
+                          typeof(double),
+                          typeof(decimal),
+                          typeof(bool),
+                          typeof(string),
+                          typeof(char),
+                          typeof(Guid),
+                          typeof(DateTime),
+                          typeof(DateTimeOffset),
+                          typeof(TimeSpan),
+                          typeof(byte[]),
+                          typeof(byte?),
+                          typeof(sbyte?),
+                          typeof(short?),
+                          typeof(ushort?),
+                          typeof(int?),
+                          typeof(uint?),
+                          typeof(long?),
+                          typeof(ulong?),
+                          typeof(float?),
+                          typeof(double?),
+                          typeof(decimal?),
+                          typeof(bool?),
+                          typeof(char?),
+                          typeof(Guid?),
+                          typeof(DateTime?),
+                          typeof(DateTimeOffset?),
+                          typeof(TimeSpan?),
+                          typeof(object) };
     }
 }
