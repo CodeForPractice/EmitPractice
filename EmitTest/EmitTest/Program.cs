@@ -1,18 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EmitTest
 {
-    class Program
+    public class Program
     {
+        public void Show(int a)
+        {
+            Console.WriteLine("Show" + a.ToString());
+        }
+
         //C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin
         private delegate void HelloWorldDelegate();
-        static void Main(string[] args)
+
+        private static void Main(string[] args)
         {
             //Method1();
             //Method2();
@@ -21,16 +23,18 @@ namespace EmitTest
             Student.SetGetAge1IL();
             Student.SetGetAge2IL();
             Student.SetGetAge3IL();
-
+            Student.SetGetAgeIL();
+            Student.SetSayMsgIL();
+            Student.SetCalculateIL();
+            Student.SetSayIL();
             Console.Read();
         }
 
-        static void Method4()
+        private static void Method4()
         {
-            
         }
 
-        static void Method3()
+        private static void Method3()
         {
             Console.WriteLine("----3----");
             string name = "EmitTest.Test";
@@ -49,25 +53,24 @@ namespace EmitTest
             //实例化一个AssemblyBuilder对象来实现动态程序集的构建
             AssemblyBuilder assemblyBuilder = domain.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.RunAndSave);
 
-            #endregion
+            #endregion Step 1 构建程序集
 
             #region Step 2 定义模块
 
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(name, asmFileName);
 
-            #endregion
+            #endregion Step 2 定义模块
 
             #region Step 3 定义类型
 
             TypeBuilder typeBuilder = moduleBuilder.DefineType(name, TypeAttributes.Public);
 
-            #endregion
+            #endregion Step 3 定义类型
 
             FieldBuilder fieldABuilder = typeBuilder.DefineField("_a", typeof(Int32), FieldAttributes.Private);
             FieldBuilder fieldBBuilder = typeBuilder.DefineField("_b", typeof(Int32), FieldAttributes.Private);
             fieldABuilder.SetConstant(0);
             fieldBBuilder.SetConstant(0);
-
 
             PropertyBuilder propertyABuilder = typeBuilder.DefineProperty("A", PropertyAttributes.None, typeof(int), null);
             PropertyBuilder propertyBBuilder = typeBuilder.DefineProperty("B", PropertyAttributes.None, typeof(int), null);
@@ -116,10 +119,9 @@ namespace EmitTest
                 object ob = Activator.CreateInstance(type, new object[] { i, i + 1 });
                 Console.WriteLine(type.GetMethod("Calc").Invoke(ob, null).ToString());
             }
-
         }
 
-        static void Method2()
+        private static void Method2()
         {
             Console.WriteLine("----2----");
             string name = "EmitTest.Test";
@@ -138,19 +140,19 @@ namespace EmitTest
             //实例化一个AssemblyBuilder对象来实现动态程序集的构建
             AssemblyBuilder assemblyBuilder = domain.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.RunAndSave);
 
-            #endregion
+            #endregion Step 1 构建程序集
 
             #region Step 2 定义模块
 
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(name, asmFileName);
 
-            #endregion
+            #endregion Step 2 定义模块
 
             #region Step 3 定义类型
 
             TypeBuilder typeBuilder = moduleBuilder.DefineType(name, TypeAttributes.Public);
 
-            #endregion
+            #endregion Step 3 定义类型
 
             #region Step 4 定义方法
 
@@ -160,7 +162,7 @@ namespace EmitTest
                 typeof(Int32),
                 new Type[] { typeof(Int32) });
 
-            #endregion
+            #endregion Step 4 定义方法
 
             #region Step 5 实现方法
 
@@ -207,7 +209,7 @@ namespace EmitTest
             calcIL.MarkLabel(lbReturnResutl);
             calcIL.Emit(OpCodes.Ret);
 
-            #endregion
+            #endregion Step 5 实现方法
 
             #region Step 6 收获
 
@@ -222,10 +224,10 @@ namespace EmitTest
                 Console.WriteLine(type.GetMethod("Calc").Invoke(ob, new object[] { i }));
             }
 
-            #endregion
+            #endregion Step 6 收获
         }
 
-        static void Method1()
+        private static void Method1()
         {
             Console.WriteLine("----1----");
             DynamicMethod helloWorldMethod = new DynamicMethod("HelloWorld", null, null);

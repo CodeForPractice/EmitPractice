@@ -1,7 +1,9 @@
 ﻿using Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
@@ -72,7 +74,7 @@ namespace EmitTest
                 il.Emit(OpCodes.Brtrue_S, returnLable1);
 
                 il.Emit(OpCodes.Ldarg_1);
-                il.Emit(OpCodes.Ldc_I4_S,100);
+                il.Emit(OpCodes.Ldc_I4_S, 100);
                 il.Emit(OpCodes.Cgt);
                 il.Emit(OpCodes.Brtrue_S, returnLable1);
 
@@ -83,7 +85,7 @@ namespace EmitTest
                 il.Emit(OpCodes.Ldc_I4_1);
 
                 il.MarkLabel(lbReturnResutl);
-               
+
                 il.Emit(OpCodes.Ret);
 
                 Type type = typeBuilder.CreateType();
@@ -97,5 +99,226 @@ namespace EmitTest
                 Console.WriteLine(type.GetMethod("GetAge3").Invoke(obj, new object[] { 33 }));
             });
         }
+
+        public static void SetGetAgeIL()
+        {
+            Console.WriteLine("---4---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("GetAge", System.Reflection.MethodAttributes.Public, typeof(int), Type.EmptyTypes);
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+                LocalBuilder local1 = il.DeclareLocal(typeof(int));
+                Label lableReturn = il.DefineLabel();
+                Label lableFinally = il.DefineLabel();
+                il.Emit(OpCodes.Ldc_I4_S, 10);
+                il.Emit(OpCodes.Stloc_0);
+
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldc_I4_S, 100);
+                il.Emit(OpCodes.Blt_S, lableReturn);
+                //il.Emit(OpCodes.Brtrue_S, lableReturn);
+
+                il.Emit(OpCodes.Ldc_I4_S, 100);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Sub);
+                il.Emit(OpCodes.Br, lableFinally);
+
+                il.MarkLabel(lableReturn);
+                il.Emit(OpCodes.Ldloc_0);
+
+                il.MarkLabel(lableFinally);
+
+                il.Emit(OpCodes.Ret);
+
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                Console.WriteLine(type.GetMethod("GetAge").Invoke(obj, null));
+            });
+        }
+
+        public static void SetSayMsgIL()
+        {
+            Console.WriteLine("---5---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("Say", System.Reflection.MethodAttributes.Public, null, new Type[] { typeof(string) });
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
+
+                il.Emit(OpCodes.Ret);
+
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                type.GetMethod("Say").Invoke(obj, new object[] { "Hellow World" });
+            });
+        }
+
+        public static void SetCalculateIL()
+        {
+            Console.WriteLine("---6---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("Calculate", System.Reflection.MethodAttributes.Public, typeof(int), new Type[] { typeof(int), typeof(int) });
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+                LocalBuilder local1 = il.DeclareLocal(typeof(int));
+                Label lable1 = il.DefineLabel();
+                Label lable2 = il.DefineLabel();
+                Label lable3 = il.DefineLabel();
+                Label lableFinally = il.DefineLabel();
+
+                il.Emit(OpCodes.Ldc_I4_S, 10);
+                il.Emit(OpCodes.Stloc_0);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Blt_S, lable1);
+
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Clt);
+                il.Emit(OpCodes.Brtrue_S, lable2);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Ceq);
+                il.Emit(OpCodes.Brtrue_S, lable3);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Add);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Clt);
+                il.Emit(OpCodes.Brtrue_S, lable3);
+
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Sub);
+                il.Emit(OpCodes.Br_S, lableFinally);
+
+                il.MarkLabel(lable1);
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Br_S, lableFinally);
+
+                il.MarkLabel(lable2);
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Br_S, lableFinally);
+
+
+                il.MarkLabel(lable3);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Br_S, lableFinally);
+
+                il.MarkLabel(lableFinally);
+
+                il.Emit(OpCodes.Ret);
+
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                Console.WriteLine(type.GetMethod("Calculate").Invoke(obj, new object[] { 5, 10 }));
+                Console.WriteLine(type.GetMethod("Calculate").Invoke(obj, new object[] { 4, 4 }));
+                Console.WriteLine(type.GetMethod("Calculate").Invoke(obj, new object[] { 20, 20 }));
+                Console.WriteLine(type.GetMethod("Calculate").Invoke(obj, new object[] { 20, 30 }));
+            });
+        }
+
+        public static void SetSayIL()
+        {
+            Console.WriteLine("---7---");
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("Say", System.Reflection.MethodAttributes.Public, null, Type.EmptyTypes);
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+
+                LocalBuilder localI = il.DeclareLocal(typeof(int));
+                LocalBuilder localLength = il.DeclareLocal(typeof(int));
+                LocalBuilder local3 = il.DeclareLocal(typeof(int));
+                Label forStartLable = il.DefineLabel();
+                Label finallyLable = il.DefineLabel();
+                il.Emit(OpCodes.Ldc_I4_0);
+                il.Emit(OpCodes.Stloc_0);
+                il.Emit(OpCodes.Ldc_I4_S, 10);
+                il.Emit(OpCodes.Stloc_1);
+                il.MarkLabel(forStartLable);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldloc_1);
+                il.Emit(OpCodes.Clt);
+                il.Emit(OpCodes.Stloc_2);
+                il.Emit(OpCodes.Ldloc_2);
+                il.Emit(OpCodes.Brfalse_S, finallyLable);
+
+                //il.Emit(OpCodes.Ldloca_S, localI);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Call, typeof(Program).GetMethod("Show", new Type[] { typeof(int) }));
+                //il.Emit(OpCodes.Call, typeof(int).GetMethod("ToString", Type.EmptyTypes));
+                //il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldc_I4_1);
+                il.Emit(OpCodes.Add);
+                il.Emit(OpCodes.Stloc_0);
+                il.Emit(OpCodes.Br_S, forStartLable);
+
+                il.MarkLabel(finallyLable);
+                il.Emit(OpCodes.Ret);
+
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+                object obj = Activator.CreateInstance(type);
+                type.GetMethod("Say").Invoke(obj, null);
+            });
+
+
+        }
+
+
+        //用于构造Emit的DataRow中获取字段的方法信息
+        private static readonly MethodInfo getValueMethod = typeof(DataRow).GetMethod("get_Item", new Type[] { typeof(int) });
+
+        //用于构造Emit的DataRow中判断是否为空行的方法信息
+        private static readonly MethodInfo isDBNullMethod = typeof(DataRow).GetMethod("IsNull", new Type[] { typeof(int) });
+        //public static List<T> ToList<T>(DataTable dt)
+        //{
+        //    List<T> list = new List<T>();
+        //    if (dt == null || dt.Rows.Count <= 0)
+        //    {
+        //        return list;
+        //    }
+
+        //    DynamicMethod method = new DynamicMethod("CreateEntity_" + typeof(T).Name, typeof(T), new Type[] { typeof(DataRow) }, typeof(T), true);
+        //    ILGenerator il = method.GetILGenerator();
+        //    LocalBuilder instanceOfT = il.DeclareLocal(typeof(T));
+        //    il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(Type.EmptyTypes));
+        //    il.Emit(OpCodes.Stloc, instanceOfT);
+
+        //    for (int index = 0; index < dt.Columns.Count; index++)
+        //    {
+        //        PropertyInfo propertyInfo = typeof(T).GetProperty(dt.Columns[index].ColumnName, BindingFlags.IgnoreCase);
+        //        Label endIfLabel = il.DefineLabel();
+        //        if (propertyInfo != null && propertyInfo.GetSetMethod() != null)
+        //        {
+        //            il.Emit(OpCodes.Ldarg_0);
+        //            il.Emit(OpCodes.Ldc_I4, index);
+        //            il.Emit(OpCodes.Callvirt, isDBNullMethod);
+        //            il.Emit(OpCodes.Brtrue, endIfLabel);
+        //            il.Emit(OpCodes.Ldloc, instanceOfT);
+        //            il.Emit(OpCodes.Ldarg_0);
+        //            il.Emit(OpCodes.Ldc_I4, index);
+        //            il.Emit(OpCodes.Callvirt, getValueMethod);
+        //            il.Emit(OpCodes.Unbox_Any, propertyInfo.PropertyType);
+        //            il.Emit(OpCodes.Callvirt, propertyInfo.GetSetMethod());
+        //            il.MarkLabel(endIfLabel);
+        //        }
+        //    }
+        //    il.Emit(OpCodes.Ldloc, instanceOfT);
+        //    il.Emit(OpCodes.Ret);
+        //}
     }
 }
