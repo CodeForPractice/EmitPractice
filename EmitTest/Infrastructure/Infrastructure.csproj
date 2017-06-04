@@ -42,10 +42,13 @@
   <ItemGroup>
     <Compile Include="AssemblyUtil.cs" />
     <Compile Include="ConcurrentDicExtension.cs" />
+    <Compile Include="ConvertUtil.cs" />
     <Compile Include="DataTableUtil.cs" />
+    <Compile Include="MethodUtil.cs" />
     <Compile Include="PropertyUtil.cs" />
     <Compile Include="Student.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ThirdyParty1.cs" />
     <Compile Include="TypeUtil.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

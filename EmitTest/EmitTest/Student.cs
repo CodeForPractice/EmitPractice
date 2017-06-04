@@ -279,46 +279,20 @@ namespace EmitTest
         }
 
 
-        //用于构造Emit的DataRow中获取字段的方法信息
-        private static readonly MethodInfo getValueMethod = typeof(DataRow).GetMethod("get_Item", new Type[] { typeof(int) });
+        public static void ToList()
+        {
+            User user = new User
+            {
+                Id = 1
 
-        //用于构造Emit的DataRow中判断是否为空行的方法信息
-        private static readonly MethodInfo isDBNullMethod = typeof(DataRow).GetMethod("IsNull", new Type[] { typeof(int) });
-        //public static List<T> ToList<T>(DataTable dt)
-        //{
-        //    List<T> list = new List<T>();
-        //    if (dt == null || dt.Rows.Count <= 0)
-        //    {
-        //        return list;
-        //    }
+            };
+            object product = new Product
+            {
+                ProductAddTime = DateTime.Now,
+                ProductId = 1
+            };
 
-        //    DynamicMethod method = new DynamicMethod("CreateEntity_" + typeof(T).Name, typeof(T), new Type[] { typeof(DataRow) }, typeof(T), true);
-        //    ILGenerator il = method.GetILGenerator();
-        //    LocalBuilder instanceOfT = il.DeclareLocal(typeof(T));
-        //    il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(Type.EmptyTypes));
-        //    il.Emit(OpCodes.Stloc, instanceOfT);
-
-        //    for (int index = 0; index < dt.Columns.Count; index++)
-        //    {
-        //        PropertyInfo propertyInfo = typeof(T).GetProperty(dt.Columns[index].ColumnName, BindingFlags.IgnoreCase);
-        //        Label endIfLabel = il.DefineLabel();
-        //        if (propertyInfo != null && propertyInfo.GetSetMethod() != null)
-        //        {
-        //            il.Emit(OpCodes.Ldarg_0);
-        //            il.Emit(OpCodes.Ldc_I4, index);
-        //            il.Emit(OpCodes.Callvirt, isDBNullMethod);
-        //            il.Emit(OpCodes.Brtrue, endIfLabel);
-        //            il.Emit(OpCodes.Ldloc, instanceOfT);
-        //            il.Emit(OpCodes.Ldarg_0);
-        //            il.Emit(OpCodes.Ldc_I4, index);
-        //            il.Emit(OpCodes.Callvirt, getValueMethod);
-        //            il.Emit(OpCodes.Unbox_Any, propertyInfo.PropertyType);
-        //            il.Emit(OpCodes.Callvirt, propertyInfo.GetSetMethod());
-        //            il.MarkLabel(endIfLabel);
-        //        }
-        //    }
-        //    il.Emit(OpCodes.Ldloc, instanceOfT);
-        //    il.Emit(OpCodes.Ret);
-        //}
+            user.Product = (Product)product;
+        }
     }
 }

@@ -53,16 +53,19 @@ namespace EmitTest
         static public DataSet GetDataSet()
         {
             DataTable table = new DataTable("User");
-            table.Columns.Add("Id", typeof(object));
-            table.Columns.Add("Name", typeof(object));
-            table.Columns.Add("Sex", typeof(object));
-            table.Columns.Add("Uid", typeof(object));
-            table.Columns.Add("Time", typeof(object));
+            table.Columns.Add("Id");
+            table.Columns.Add("Name");
+            table.Columns.Add("Sex");
+            table.Columns.Add("Uid");
+            table.Columns.Add("Time");
             table.Columns.Add("SourcePort", typeof(object));
-            table.Columns.Add("多出来的属性", typeof(string));
+            table.Columns.Add("ProductId");
+            table.Columns.Add("ProductName");
+            table.Columns.Add("ProductPrice");
+            table.Columns.Add("ProductAddTime", typeof(object));
             for (int i = 0; i < 20; i++)
             {
-                table.Rows.Add(i, "blqw" + i, true, Guid.NewGuid(), DateTime.Now, i < 10 ? Port.APP : Port.PC, "多余的");
+                table.Rows.Add(i, "blqw" + i, true, Guid.NewGuid(), DateTime.Now, i < 10 ? Port.APP : Port.PC, i, "product" + i.ToString(), i, DateTime.Now);
             }
 
             DataSet ds = new DataSet();
@@ -77,7 +80,7 @@ namespace EmitTest
         {
 
         }
-        public int? Id { get; set; }
+        public double? Id { get; set; }
         public string Name { get; set; }
         public bool Sex { get; set; }
         public Guid Uid { get; set; }
@@ -95,9 +98,10 @@ namespace EmitTest
             }
         }
 
+        public Product Product { get; set; }
         public override string ToString()
         {
-            return $"{Id},{Name},{Sex},{Uid},{Time},{SexText},{SourcePort}";
+            return $"{Id},{Name},{Sex},{Uid},{Time},{SexText},{SourcePort},{Product?.ToString()}";
         }
     }
 
@@ -109,16 +113,16 @@ namespace EmitTest
 
     public class Product
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        public int? ProductId { get; set; }
+        public string ProductName { get; set; }
 
-        public decimal Price { get; set; }
+        public decimal ProductPrice { get; set; }
 
-        public DateTime AddTime { get; set; }
+        public DateTime ProductAddTime { get; set; }
 
         public override string ToString()
         {
-            return $"{Id},{Name},{Price},{AddTime}";
+            return $"{ProductId},{ProductName},{ProductPrice},{ProductAddTime}";
         }
     }
 }

@@ -156,63 +156,96 @@ namespace Infrastructure
             return deledge(dr);
         }
 
-        public static DynamicMethod GetDynamicMethod<T>(this DataRow @this)
-        {
-            var instanceType = typeof(T);
-            var isContainColumnMethod = typeof(DataTableUtil).GetMethod("IsContainColumn", new Type[] { typeof(DataRow), typeof(string) });
-            var getColumnValueMethod = typeof(DataTableUtil).GetMethod("GetColumnValue", new Type[] { typeof(DataRow), typeof(string) });
-            DynamicMethod convertMethod = new DynamicMethod("ConvertMethod" + instanceType.Name, instanceType, new Type[] { typeof(DataRow) }, true);
+        private static readonly MethodInfo isContainColumnMethod = typeof(DataTableUtil).GetMethod("IsContainColumn", new Type[] { typeof(DataRow), typeof(string) });
+        private static readonly MethodInfo getColumnValueMethod = typeof(DataTableUtil).GetMethod("GetColumnValue", new Type[] { typeof(DataRow), typeof(string) });
+        private static readonly MethodInfo typeConvertMethod = typeof(DataTableUtil).GetMethod("To", new Type[] { typeof(object), typeof(Type) });
 
-            ILGenerator il = convertMethod.GetILGenerator();
+        public static void SetILGenerator(Type instanceType, ILGenerator il)
+        {
             LocalBuilder instance = il.DeclareLocal(instanceType);
             il.Emit(OpCodes.Newobj, instanceType.GetConstructor(Type.EmptyTypes));
             il.Emit(OpCodes.Stloc, instance);
+            SetInstancePropertyIL(instanceType, il, instance);
+            il.Emit(OpCodes.Ldloc, instance);
+            il.Emit(OpCodes.Ret);
+        }
 
+        private static void SetInstancePropertyIL(Type instanceType, ILGenerator il, LocalBuilder instance)
+        {
             List<PropertyInfo> properties = PropertyUtil.GetTypeProperties(instanceType);
 
             foreach (var item in properties.Where(m => TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum))
             {
                 Label endIfLabel = il.DefineLabel();
+
                 //判断DataRow是否包含该属性
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, item.Name);
                 il.Emit(OpCodes.Call, isContainColumnMethod);
+
                 il.Emit(OpCodes.Brfalse, endIfLabel);
+
                 //获取该属性在datarow的值
                 il.Emit(OpCodes.Ldloc, instance);
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, item.Name);
                 il.Emit(OpCodes.Call, getColumnValueMethod);
+
                 //设置值
                 if (item.PropertyType.IsValueType)
                 {
-                    il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
+                    var convertMethod = MethodUtil.GetMethodInfo(item.PropertyType);
+                    if (convertMethod == null)
+                    {
+                        il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Call, convertMethod);
+                    }
                 }
                 else
                 {
                     il.Emit(OpCodes.Castclass, item.PropertyType);
                 }
-                //il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
-                il.Emit(OpCodes.Callvirt, item.GetSetMethod());
+                il.Emit(OpCodes.Callvirt, item.GetSetMethod(true));
 
                 il.MarkLabel(endIfLabel);
             }
-
             foreach (var item in properties.Where(m => !(TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum)))
             {
                 if (item.PropertyType.IsArray || item.PropertyType.IsGenericType)
                 {
 
-                }else
+                }
+                else
                 {
+                    LocalBuilder instanceProperty = il.DeclareLocal(item.PropertyType);
+                    il.Emit(OpCodes.Newobj, item.PropertyType.GetConstructor(Type.EmptyTypes));
+                    il.Emit(OpCodes.Stloc, instanceProperty);
+                    SetInstancePropertyIL(item.PropertyType, il, instanceProperty);
 
+                    il.Emit(OpCodes.Ldloc, instance);
+                    il.Emit(OpCodes.Ldloc, instanceProperty);
+                    il.Emit(OpCodes.Castclass, item.PropertyType);
+                    il.Emit(OpCodes.Callvirt, item.GetSetMethod(true));
                 }
             }
-            il.Emit(OpCodes.Ldloc, instance);
-            il.Emit(OpCodes.Ret);
+
+        }
+
+        public static DynamicMethod GetDynamicMethod<T>(this DataRow @this)
+        {
+            var instanceType = typeof(T);
+            DynamicMethod convertMethod = new DynamicMethod("ConvertMethod" + instanceType.Name, instanceType, new Type[] { typeof(DataRow) }, true);
+
+            ILGenerator il = convertMethod.GetILGenerator();
+            SetILGenerator(instanceType, il);
             return convertMethod;
         }
+
+
 
         public static bool IsContainColumn(DataRow row, string columnName)
         {
@@ -236,6 +269,152 @@ namespace Infrastructure
             {
                 return null;
             }
+        }
+
+        public static void ToList<T>(DataRow row)
+        {
+            AssemblyUtil.GetTypeBuilder("Student", (typeBuilder, assemblyBuilder) =>
+            {
+                MethodBuilder methodBuilder = typeBuilder.DefineMethod("ToList", MethodAttributes.Public, typeof(T), new Type[] { typeof(DataRow) });
+
+                ILGenerator il = methodBuilder.GetILGenerator();
+
+                SetILGenerator(typeof(T), il);
+                Type type = typeBuilder.CreateType();
+                assemblyBuilder.Save(AssemblyUtil.name);
+
+                object obj = Activator.CreateInstance(type);
+                type.GetMethod("ToList").Invoke(obj, new object[] { row });
+
+            });
+        }
+
+        public static Action<object, object[]> CreatePropertiesAction(PropertyInfo[] infos)
+        {
+            Type classType = GetClassTypeByProperty(infos);
+            DynamicMethod method = new DynamicMethod("", null, new Type[] { typeof(object), typeof(object[]) }, true);
+            ILGenerator il = method.GetILGenerator();
+
+            LocalBuilder obj = il.DeclareLocal(classType);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Unbox_Any, classType); //对要赋值的对象进行拆箱
+            il.Emit(OpCodes.Stloc_0);
+
+            for (int i = 0; i < infos.Length; i++)
+            {
+                Label lbl_end = il.DefineLabel();
+                Type propType = infos[i].PropertyType;
+
+                il.Emit(OpCodes.Ldarg_1);
+                Ldc(il, i);
+                il.Emit(OpCodes.Ldelem_Ref); //定位i处的value
+
+                il.Emit(OpCodes.Ldnull);
+                il.Emit(OpCodes.Ceq);
+                il.Emit(OpCodes.Brtrue_S, lbl_end); //判断是否为null，为null则跳过
+
+                il.Emit(OpCodes.Ldloc_0); //对象压栈
+                il.Emit(OpCodes.Ldarg_1); //值数组压栈
+                Ldc(il, i);               //压入索引
+                il.Emit(OpCodes.Ldelem_Ref); //取索引处的值
+                il.Emit(OpCodes.Unbox_Any, propType); //拆箱
+
+                il.Emit(OpCodes.Callvirt, infos[i].GetSetMethod()); //调用属性的set方法给属性赋值
+                il.MarkLabel(lbl_end);
+            }
+
+            il.Emit(OpCodes.Ret);
+            return method.CreateDelegate(typeof(Action<object, object[]>)) as Action<object, object[]>;
+        }
+
+        public static Func<object, object[]> CreatePropertiesFunc(PropertyInfo[] infos)
+        {
+            Type classType = GetClassTypeByProperty(infos);
+            DynamicMethod method = new DynamicMethod("", typeof(object[]), new Type[] { typeof(object) }, true);
+            ILGenerator il = method.GetILGenerator();
+
+            LocalBuilder tmp = il.DeclareLocal(typeof(object));
+            LocalBuilder result = il.DeclareLocal(typeof(object[]));
+
+            LocalBuilder obj = il.DeclareLocal(classType);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Unbox_Any, classType);
+            il.Emit(OpCodes.Stloc, obj);
+
+            Ldc(il, infos.Length);
+            il.Emit(OpCodes.Newarr, typeof(object));
+            il.Emit(OpCodes.Stloc, result); //初始化一个object数组
+
+            for (int i = 0; i < infos.Length; i++)
+            {
+                il.Emit(OpCodes.Ldloc, obj);
+                il.Emit(OpCodes.Callvirt, infos[i].GetGetMethod()); //获取属性的值
+
+                if (infos[i].PropertyType.IsValueType)
+                    il.Emit(OpCodes.Box, infos[i].PropertyType); //值类型则装箱
+
+                il.Emit(OpCodes.Stloc, tmp); //保存到临时变量
+
+                il.Emit(OpCodes.Ldloc, result);
+                Ldc(il, i);
+                il.Emit(OpCodes.Ldloc, tmp); //数组对象、索引位置、值分别压栈
+                il.Emit(OpCodes.Stelem_Ref); //赋值
+            }
+
+            il.Emit(OpCodes.Ldloc, result);
+            il.Emit(OpCodes.Ret);
+
+            return method.CreateDelegate(typeof(Func<object, object[]>)) as Func<object, object[]>;
+        }
+
+        private static Type GetClassTypeByProperty(PropertyInfo[] infos)
+        {
+            if (infos == null || infos.Length <= 0)
+                throw new ArgumentNullException("infos");
+
+            return infos[0].ReflectedType;
+        }
+
+        private static void Ldc(ILGenerator il, int value)
+        {
+            switch (value)
+            {
+                case -1:
+                    il.Emit(OpCodes.Ldc_I4_M1);
+                    return;
+                case 0:
+                    il.Emit(OpCodes.Ldc_I4_0);
+                    return;
+                case 1:
+                    il.Emit(OpCodes.Ldc_I4_1);
+                    return;
+                case 2:
+                    il.Emit(OpCodes.Ldc_I4_2);
+                    return;
+                case 3:
+                    il.Emit(OpCodes.Ldc_I4_3);
+                    return;
+                case 4:
+                    il.Emit(OpCodes.Ldc_I4_4);
+                    return;
+                case 5:
+                    il.Emit(OpCodes.Ldc_I4_5);
+                    return;
+                case 6:
+                    il.Emit(OpCodes.Ldc_I4_6);
+                    return;
+                case 7:
+                    il.Emit(OpCodes.Ldc_I4_7);
+                    return;
+                case 8:
+                    il.Emit(OpCodes.Ldc_I4_8);
+                    return;
+            }
+
+            if (value > -129 && value < 128)
+                il.Emit(OpCodes.Ldc_I4_S, (sbyte)value);
+            else
+                il.Emit(OpCodes.Ldc_I4, value);
         }
     }
 }

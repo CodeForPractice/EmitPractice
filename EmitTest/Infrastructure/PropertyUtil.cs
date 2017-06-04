@@ -78,7 +78,7 @@ namespace Infrastructure
             var typeHandle = type.TypeHandle;
             return _propertyCache.GetValue(typeHandle, () =>
             {
-                return type.GetProperties(BindingFlags.Instance | BindingFlags.Public).ToList();//BindingFlags.GetProperty |
+                return type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).ToList();//BindingFlags.GetProperty |
             });
         }
 

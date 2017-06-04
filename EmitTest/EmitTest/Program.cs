@@ -11,11 +11,14 @@ namespace EmitTest
             Console.WriteLine("Show" + a.ToString());
         }
 
+
         //C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin
         private delegate void HelloWorldDelegate();
 
         private static void Main(string[] args)
         {
+            object i = 1;
+            Convert.ToDecimal(i);
             //Method1();
             //Method2();
             //Method3();
@@ -27,7 +30,7 @@ namespace EmitTest
             //Student.SetSayMsgIL();
             //Student.SetCalculateIL();
             //Student.SetSayIL();
-
+            //Student.ToList();
             TableTest.Test1();
 
             Console.Read();
