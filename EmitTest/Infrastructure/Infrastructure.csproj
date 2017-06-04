@@ -44,6 +44,7 @@
     <Compile Include="ConcurrentDicExtension.cs" />
     <Compile Include="ConvertUtil.cs" />
     <Compile Include="DataTableUtil.cs" />
+    <Compile Include="EmitReflections\PropertyHelper.cs" />
     <Compile Include="MethodUtil.cs" />
     <Compile Include="PropertyUtil.cs" />
     <Compile Include="Student.cs" />

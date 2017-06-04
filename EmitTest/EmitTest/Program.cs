@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -17,8 +18,29 @@ namespace EmitTest
 
         private static void Main(string[] args)
         {
-            object i = 1;
-            Convert.ToDecimal(i);
+            Infrastructure.EmitReflections.PropertyHelper.GetTypeProperties(typeof(User));
+
+            //List<User> userList = new List<EmitTest.User>();
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    User user = new EmitTest.User();
+            //    user.Name = "你好" + i.ToString();
+            //    user.Id = i;
+            //    userList.Add(user);
+            //}
+            //foreach (var item in userList)
+            //{
+            //    Console.WriteLine(item.ToString());
+            //}
+
+            //var properties = Infrastructure.EmitReflections.PropertyHelper.GetTypeProperties(typeof(User));
+            //foreach (var item in properties)
+            //{
+            //    Console.WriteLine(item.Name);
+            //}
+
+            //object i = 1;
+            //Convert.ToDecimal(i);
             //Method1();
             //Method2();
             //Method3();
@@ -31,7 +53,7 @@ namespace EmitTest
             //Student.SetCalculateIL();
             //Student.SetSayIL();
             //Student.ToList();
-            TableTest.Test1();
+            //TableTest.Test1();
 
             Console.Read();
         }
