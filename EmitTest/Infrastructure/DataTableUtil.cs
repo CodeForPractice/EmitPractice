@@ -141,6 +141,7 @@ namespace Infrastructure
         }
 
         public delegate T LoadDataRecord<T>(DataRow dr);
+        public delegate List<T> LoadData<T>(DataTable ta);
         private static ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod> dynamicMethodCache = new ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod>();
 
         public static T ToT<T>(DataRow dr)
@@ -159,6 +160,8 @@ namespace Infrastructure
         private static readonly MethodInfo isContainColumnMethod = typeof(DataTableUtil).GetMethod("IsContainColumn", new Type[] { typeof(DataRow), typeof(string) });
         private static readonly MethodInfo getColumnValueMethod = typeof(DataTableUtil).GetMethod("GetColumnValue", new Type[] { typeof(DataRow), typeof(string) });
         private static readonly MethodInfo typeConvertMethod = typeof(DataTableUtil).GetMethod("To", new Type[] { typeof(object), typeof(Type) });
+        private static readonly MethodInfo getRowMethod = typeof(DataTable).GetMethod("get_Rows", Type.EmptyTypes);
+        private static readonly MethodInfo getRowItemMethod = typeof(DataRowCollection).GetMethod("get_Item", new Type[] { typeof(int) });
 
         public static void SetILGenerator(Type instanceType, ILGenerator il)
         {
@@ -415,6 +418,213 @@ namespace Infrastructure
                 il.Emit(OpCodes.Ldc_I4_S, (sbyte)value);
             else
                 il.Emit(OpCodes.Ldc_I4, value);
+        }
+
+
+        private static DynamicMethod CreateToListMethod<T>(DataTable table)
+        {
+            var listType = typeof(List<T>);
+            var instanceType = typeof(T);
+            DynamicMethod convertMethod = new DynamicMethod("ConvertListMethod" + instanceType.Name, listType, new Type[] { typeof(DataTable) });
+
+            ILGenerator il = convertMethod.GetILGenerator();
+
+            LocalBuilder listBuilder = il.DeclareLocal(listType);//List<T> 存储对象
+
+            LocalBuilder currentRowBuilder = il.DeclareLocal(typeof(DataRow));// T 存储对象
+            LocalBuilder totalCountBuilder = il.DeclareLocal(typeof(int));// table 总记录数
+            LocalBuilder currentIndexBuilder = il.DeclareLocal(typeof(int));// 当前table.Rows的索引
+
+            Label exit = il.DefineLabel();//退出循环
+            Label loop = il.DefineLabel();//循环体
+
+            il.Emit(OpCodes.Newobj, listType.GetConstructor(Type.EmptyTypes));
+            il.Emit(OpCodes.Stloc_S, listBuilder);
+
+            il.Emit(OpCodes.Ldc_I4, table.Rows.Count);
+            il.Emit(OpCodes.Stloc_S, totalCountBuilder);
+
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Stloc_S, currentIndexBuilder);
+
+            il.MarkLabel(loop);//开始循环
+            LocalBuilder instanceBuilder = il.DeclareLocal(instanceType);// T 存储对象
+            il.Emit(OpCodes.Newobj, instanceType.GetConstructor(Type.EmptyTypes));
+            il.Emit(OpCodes.Stloc_S, instanceBuilder);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Callvirt, getRowMethod);
+            il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            il.Emit(OpCodes.Callvirt, getRowItemMethod);//table.Rows[i]
+            il.Emit(OpCodes.Stloc_S, currentRowBuilder);
+
+            SetDataRowIL(instanceType, il, currentRowBuilder, instanceBuilder);
+
+            il.Emit(OpCodes.Ldloc, listBuilder);
+            il.Emit(OpCodes.Ldloc, instanceBuilder);
+            il.Emit(OpCodes.Call, listType.GetMethod("Add"));
+
+            //i++
+            il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            il.Emit(OpCodes.Ldc_I4_1);
+            il.Emit(OpCodes.Add);
+            il.Emit(OpCodes.Stloc_S, currentIndexBuilder);
+            //i<table.Rows.Count
+            il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            il.Emit(OpCodes.Ldloc, totalCountBuilder);
+            il.Emit(OpCodes.Clt);
+            il.Emit(OpCodes.Brtrue, loop);
+
+            il.Emit(OpCodes.Ldloc, listBuilder);
+            il.Emit(OpCodes.Ret);
+
+            return convertMethod;
+        }
+        private static ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod> _ConvertListMethodCache = new ConcurrentDictionary<RuntimeTypeHandle, DynamicMethod>();
+        public static List<T> ToList<T>(DataTable table)
+        {
+            if (table == null || table.Rows.Count <= 0)
+            {
+                return new List<T>();
+            }
+
+            var convertMethod = _ConvertListMethodCache.GetValue(typeof(T).TypeHandle, () =>
+            {
+                return CreateToListMethod<T>(table);
+            });
+
+            //var listType = typeof(List<T>);
+            //var instanceType = typeof(T);
+            //DynamicMethod convertMethod = new DynamicMethod("ConvertListMethod" + instanceType.Name, listType, new Type[] { typeof(DataTable) });
+
+            //ILGenerator il = convertMethod.GetILGenerator();
+
+            //LocalBuilder listBuilder = il.DeclareLocal(listType);//List<T> 存储对象
+
+            //LocalBuilder currentRowBuilder = il.DeclareLocal(typeof(DataRow));// T 存储对象
+            //LocalBuilder totalCountBuilder = il.DeclareLocal(typeof(int));// table 总记录数
+            //LocalBuilder currentIndexBuilder = il.DeclareLocal(typeof(int));// 当前table.Rows的索引
+
+            //Label exit = il.DefineLabel();//退出循环
+            //Label loop = il.DefineLabel();//循环体
+
+            //il.Emit(OpCodes.Newobj, listType.GetConstructor(Type.EmptyTypes));
+            //il.Emit(OpCodes.Stloc_S, listBuilder);
+
+            //il.Emit(OpCodes.Ldc_I4, table.Rows.Count);
+            //il.Emit(OpCodes.Stloc_S, totalCountBuilder);
+
+            //il.Emit(OpCodes.Ldc_I4_0);
+            //il.Emit(OpCodes.Stloc_S, currentIndexBuilder);
+
+            //il.MarkLabel(loop);//开始循环
+            //LocalBuilder instanceBuilder = il.DeclareLocal(instanceType);// T 存储对象
+            //il.Emit(OpCodes.Newobj, instanceType.GetConstructor(Type.EmptyTypes));
+            //il.Emit(OpCodes.Stloc_S, instanceBuilder);
+            //il.Emit(OpCodes.Ldarg_0);
+            //il.Emit(OpCodes.Callvirt, getRowMethod);
+            //il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            //il.Emit(OpCodes.Callvirt, getRowItemMethod);//table.Rows[i]
+            //il.Emit(OpCodes.Stloc_S, currentRowBuilder);
+
+            //SetDataRowIL(instanceType, il, currentRowBuilder, instanceBuilder);
+
+            //il.Emit(OpCodes.Ldloc, listBuilder);
+            //il.Emit(OpCodes.Ldloc, instanceBuilder);
+            //il.Emit(OpCodes.Call, listType.GetMethod("Add"));
+
+            ////i++
+            //il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            //il.Emit(OpCodes.Ldc_I4_1);
+            //il.Emit(OpCodes.Add);
+            //il.Emit(OpCodes.Stloc_S, currentIndexBuilder);
+            ////i<table.Rows.Count
+            //il.Emit(OpCodes.Ldloc, currentIndexBuilder);
+            //il.Emit(OpCodes.Ldloc, totalCountBuilder);
+            //il.Emit(OpCodes.Clt);
+            //il.Emit(OpCodes.Brtrue, loop);
+
+            //il.Emit(OpCodes.Ldloc, listBuilder);
+            //il.Emit(OpCodes.Ret);
+
+
+
+            var deledge = (LoadData<T>)convertMethod.CreateDelegate(typeof(LoadData<T>));
+             return deledge(table);
+
+            //return null;
+
+        }
+
+        private static void SetDataRowIL(Type instanceType, ILGenerator il, LocalBuilder currentRowBuilder, LocalBuilder instanceBuilder)
+        {
+            List<PropertyInfo> properties = PropertyUtil.GetTypeProperties(instanceType);
+
+            foreach (var item in properties.Where(m => TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum))
+            {
+                Label endIfLabel = il.DefineLabel();
+
+                //判断DataRow是否包含该属性
+
+                il.Emit(OpCodes.Ldloc, currentRowBuilder);
+                il.Emit(OpCodes.Ldstr, item.Name);
+                il.Emit(OpCodes.Call, isContainColumnMethod);
+                il.Emit(OpCodes.Brfalse, endIfLabel);
+
+                //获取该属性在datarow的值
+                il.Emit(OpCodes.Ldloc, instanceBuilder);
+
+                il.Emit(OpCodes.Ldloc, currentRowBuilder);
+                il.Emit(OpCodes.Ldstr, item.Name);
+                il.Emit(OpCodes.Call, getColumnValueMethod);
+
+                //设置值
+                if (item.PropertyType.IsValueType)
+                {
+                    var convertMethod = MethodUtil.GetMethodInfo(item.PropertyType);
+                    if (convertMethod == null)
+                    {
+                        il.Emit(OpCodes.Unbox_Any, item.PropertyType);//如果是值类型就拆箱
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Call, convertMethod);
+                    }
+                }
+                else
+                {
+                    il.Emit(OpCodes.Castclass, item.PropertyType);
+                }
+                il.Emit(OpCodes.Callvirt, item.GetSetMethod(true));
+
+                il.MarkLabel(endIfLabel);
+            }
+
+            foreach (var item in properties.Where(m => !(TypeUtil._BaseTypes.Contains(m.PropertyType) || m.PropertyType.IsEnum)))
+            {
+                if (item.PropertyType.IsArray || item.PropertyType.IsGenericType)
+                {
+
+                }
+                else
+                {
+                    LocalBuilder instanceProperty = il.DeclareLocal(item.PropertyType);
+                    il.Emit(OpCodes.Newobj, item.PropertyType.GetConstructor(Type.EmptyTypes));
+                    il.Emit(OpCodes.Stloc, instanceProperty);
+                    SetDataRowIL(item.PropertyType, il, currentRowBuilder, instanceProperty);
+
+                    il.Emit(OpCodes.Ldloc, instanceBuilder);
+                    il.Emit(OpCodes.Ldloc, instanceProperty);
+                    il.Emit(OpCodes.Castclass, item.PropertyType);
+                    il.Emit(OpCodes.Callvirt, item.GetSetMethod(true));
+                }
+            }
+        }
+
+        public static void ILTest(DataTable table)
+        {
+            int rows = table.Rows.Count;
+            int index = 1;
+            var row = table.Rows[index];
         }
     }
 }

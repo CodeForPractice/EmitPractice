@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyUtil.cs" />
+    <Compile Include="CodeTimer.cs" />
     <Compile Include="ConcurrentDicExtension.cs" />
     <Compile Include="ConvertUtil.cs" />
     <Compile Include="DataTableUtil.cs" />

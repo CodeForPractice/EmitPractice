@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -18,7 +19,28 @@ namespace EmitTest
 
         private static void Main(string[] args)
         {
-            Infrastructure.EmitReflections.PropertyHelper.GetTypeProperties(typeof(User));
+            Infrastructure.CodeTimer.Time("EmitToTableTest_100000", 100000, new EmitToTableTest());
+            Infrastructure.CodeTimer.Time("ReflectToTableTest_100000", 100000, new ReflectToTableTest());
+            Infrastructure.CodeTimer.Time("EmitToTableTest_200000", 200000, new EmitToTableTest());
+            Infrastructure.CodeTimer.Time("ReflectToTableTest_200000", 200000, new ReflectToTableTest());
+            Infrastructure.CodeTimer.Time("EmitToTableTest_300000", 300000, new EmitToTableTest());
+            Infrastructure.CodeTimer.Time("ReflectToTableTest_300000", 300000, new ReflectToTableTest());
+            //var testTable = TableTest.GetDataSet().Tables[0];
+            //foreach (var item in Infrastructure.DataTableUtil.ToList<User>(testTable))
+            //{
+            //    Console.WriteLine(item);
+            //}
+            //Stopwatch watch = Stopwatch.StartNew();
+            //var testTable = TableTest.GetDataSet().Tables[0];
+            //for (int i = 0; i < 100000; i++)
+            //{
+            //    Infrastructure.DataTableUtil.ToEntities<User>(testTable);
+            //    //Infrastructure.EmitReflections.PropertyHelper.GetTypeProperties1(typeof(User));
+            //    //Infrastructure.EmitReflections.PropertyHelper.GetTypeProperties(typeof(User));
+            //}
+            //Console.WriteLine(watch.ElapsedMilliseconds.ToString());
+            //watch.Stop();
+
 
             //List<User> userList = new List<EmitTest.User>();
             //for (int i = 0; i < 10; i++)
