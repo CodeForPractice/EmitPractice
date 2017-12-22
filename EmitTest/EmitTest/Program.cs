@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -19,12 +20,22 @@ namespace EmitTest
 
         private static void Main(string[] args)
         {
-            Infrastructure.CodeTimer.Time("EmitToTableTest_100000", 100000, new EmitToTableTest());
-            Infrastructure.CodeTimer.Time("ReflectToTableTest_100000", 100000, new ReflectToTableTest());
-            Infrastructure.CodeTimer.Time("EmitToTableTest_200000", 200000, new EmitToTableTest());
-            Infrastructure.CodeTimer.Time("ReflectToTableTest_200000", 200000, new ReflectToTableTest());
-            Infrastructure.CodeTimer.Time("EmitToTableTest_300000", 300000, new EmitToTableTest());
-            Infrastructure.CodeTimer.Time("ReflectToTableTest_300000", 300000, new ReflectToTableTest());
+            var methodInfo = typeof(Student).GetMethod("ToList");
+            Stopwatch watch = Stopwatch.StartNew();
+            watch.Start();
+            for (int i = 0; i < 1000000; i++)
+            {
+                //var invocker = MethodInvokeUtil.GetInvoker(methodInfo);
+                //invocker.Invoke(null, null);
+                methodInfo.Invoke(null, null);
+            }
+            Console.WriteLine(watch.ElapsedMilliseconds);
+            //Infrastructure.CodeTimer.Time("EmitToTableTest_100000", 100000, new EmitToTableTest());
+            //Infrastructure.CodeTimer.Time("ReflectToTableTest_100000", 100000, new ReflectToTableTest());
+            //Infrastructure.CodeTimer.Time("EmitToTableTest_200000", 200000, new EmitToTableTest());
+            //Infrastructure.CodeTimer.Time("ReflectToTableTest_200000", 200000, new ReflectToTableTest());
+            //Infrastructure.CodeTimer.Time("EmitToTableTest_300000", 300000, new EmitToTableTest());
+            //Infrastructure.CodeTimer.Time("ReflectToTableTest_300000", 300000, new ReflectToTableTest());
             //var testTable = TableTest.GetDataSet().Tables[0];
             //foreach (var item in Infrastructure.DataTableUtil.ToList<User>(testTable))
             //{
